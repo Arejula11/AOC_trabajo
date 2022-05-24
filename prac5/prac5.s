@@ -6,6 +6,7 @@ cont DCD 0 ;instante siguiente movimiento
 dirx DCB 0 ;direccion mov. caracter ‘H’ (-1 izda.,0 stop,1 der.)
 diry DCB 0 ;direccion mov. caracter ‘H’ (-1 arriba,0 stop,1 abajo)
 fin DCB 0 ;indicador fin de programa (si vale 1)
+vida DCB 3;
 
 VICBaseEnabl	EQU 0xFFFFF000			;base para activar IRQ
 IntEnableOffset	EQU 0x10				;selecciona activar IRQ4
@@ -30,7 +31,7 @@ IOCLR 			EQU 0xE002800C ;reg. datos GPIO (desact. bits)
 reloj_var	DCD 0
 tecl_var	DCD 0
 	
-FILAS 		EQU 16
+FILAS 		EQU 15
 COLUMNAS 	EQU 32
 filabajo	DCD 0
 teclado		DCD 0
@@ -80,10 +81,10 @@ inicio	; se recomienda poner punto de parada (breakpoint) en la primera
 	str r1,[r0]
 	 
  ;dibujar pantalla inicial
-	bl srand
+ini	bl srand
 	LDR r0,=i_pantalla
 	mov r1, #FILAS
-	
+	add r1,r1,#1
 	mov r5, #COLUMNAS
 	sub r1,r1,#1
 	mul r4, r1, r5
@@ -93,6 +94,7 @@ inicio	; se recomienda poner punto de parada (breakpoint) en la primera
 	mov r9, r4
 	mov r1,#' '
 	LDR r2,=f_pantalla
+
 for2 cmp r0, r2
 	bgt fin_for2
 	strb r1,[r0]
@@ -102,6 +104,7 @@ for2 cmp r0, r2
 fin_for2
 	ldr r1,=carretera
 	LDR r0,=i_pantalla
+	add r0, #0x20
 for cmp r0, r2
 	bgt fin_for
 	strb r1,[r0,#8]!
@@ -109,13 +112,29 @@ for cmp r0, r2
 	add r0, r0, #16
 	b for
 fin_for	
+	LDR r0,=i_pantalla
+	eor r3,r3,r3
+	mov r6, #'<'
+	mov r8, #'3'
+	LDR r5,=vida
+	ldrb r5,[r5]
+	mov r4, #3
+	mul r4,r5,r4
+for3 cmp r3,r4
+	beq fin_for3
+	strb r6,[r0,r3]
+	add r3,r3,#1
+	strb r8,[r0,r3]
+	add r3,r3,#2
+	
+	b for3
+fin_for3
 while	LDR r0,=fin
 	ldrb r0,[r0]
 	cmp r0, #0
 	bne fin_while
 	
 vueltaretardo	LDR r4, =cont
-	;push {r2}
 	ldr r2, [r4]
 	LDR r3, =max
 	ldr r3,[r3]
@@ -129,14 +148,30 @@ retardo	LDR r1, =reloj
 	ldrsb r6,[r6]
 	add r10, r9, r5
 	sub r10, r10, r6, LSL#5
+	LDR r0, =f_pantalla
+	cmp r10, r0
+	bgt termin
 	ldrb r8,[r10]
 	cmp r8, #'#'
 	bne poscorrect
-termin	LDR r8,=fin
-	mov r0,#1 
+termin	LDR r8,=vida
+	ldrb r0,[r8]
+	sub r0,#1 
 	strb r0,[r8]
-	b while
-poscorrect mov r7, #'H'
+	LDR r9, =fin
+	ldrb r1, [r9]
+	cmp r0,r1
+	bne sal
+	mov r1,#1
+	strb r1, [r9]
+	;b while
+sal	b ini
+poscorrect 
+	LDR r0, =i_pantalla
+	add r0,0x20
+	cmp r10, r0
+	blt termin
+	mov r7, #'H'
 	strb r7,[r10]
 	cmp r10, r9
 	beq nomove
@@ -157,12 +192,10 @@ fin_retardo
 	ldrb r10, [r10]
 	cmp r10,#'#'
 	beq termin
-	;LDR r4, =cont
-	;add r2,r2, r3
-	;pop {r2}
 	str r2,[r4]
 	
 	LDR r0, =i_pantalla
+	add r0, #0x20
 	mov r1, #FILAS
 	sub r1, r1, #1
 	mov r2, #0
@@ -184,7 +217,6 @@ fin_for_abajo
 
 	sub r1, r1, #1 ;r1= filas -2
 	mov r2, #0
-	;mov r3, #0
 	mov r5, #COLUMNAS
 	mul r4, r1, r5 ; r4 = filas*columnas
 	mov r7, #COLUMNAS
@@ -201,14 +233,6 @@ for_mover cmp r2, r7
 	strb r5,[r0, r4]
 	mov r5,#'#'
 	add r4,r4,#32
-;	add r7, r0, r4
-;	ldrb r7,[r7, #32]
-;	cmp r7,#'H'
-;	beq termin
-;	LDR r8,=fin
-;	mov r0,#1 
-;	strb r0,[r8]
-;	b while
 	strb r5,[r0, r4]
 	sub r4,r4,#32
 	mov r6, r4
@@ -216,7 +240,6 @@ suma	add r2, r2, #1
 	add r4, r4, #1
 	b for_mover
 fin_for_mover
-	;add r4,r4, #1
 	mov r2, #0
 	sub r1, r1, #1
 	sub r4, r4, #64
@@ -248,20 +271,12 @@ fin_cmp
 	strb r4, [r0, r3]
 	sub r3, r3, #8
 	strb r4, [r0, r3]
-	;b vueltaretardo
 	
 
 	
 	b while
 fin_while
 
-;	mov r1, #FILAS
-;	sub r1, r1, #1
-;for_i	cmp r1, #0
-;	blt fin_for_i
-;	mov r2, #0
-;for_j	cmp r2, #COLUMNAS
-;	bge fin_for_j
 	
 	
  ;bucle ;mientras fin==0
@@ -284,8 +299,8 @@ fin_while
  ;desactivar RSI_reloj
  	ldr r0, =VICIntEnClr
 	eor r1, r1, r1
-	ldr r1, [r0]  ;haria falta?
-	orr r1, r1, #16		;)
+	ldr r1, [r0]  
+	orr r1, r1, #16		
 	
 	str r1, [r0]
  ;desactivar RSI_teclado
