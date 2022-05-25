@@ -27,6 +27,9 @@ RDAT 				EQU 0xE0010000 ;reg. datos teclado UART1
 
 IOSET				EQU 0xE0028004 ;reg. datos GPIO (activar bits)
 IOCLR 			EQU 0xE002800C ;reg. datos GPIO (desact. bits)
+	
+parteuno 	EQU 0x55555555
+partedos 	EQU 0xAAAAAAAA
 
 reloj_var	DCD 0
 tecl_var	DCD 0
@@ -206,12 +209,12 @@ fin_retardo
 	sub r7, r7, #1
 for_abajo cmp r2, r7
 	bge fin_for_abajo
-	add r4, r4, #1
 	ldrb r5,[r0, r4]
 	cmp r5, #'#'
 	moveq r5,#' '
 	strb r5,[r0, r4]
 	add r2, r2, #1
+		add r4, r4, #1
 	b for_abajo
 fin_for_abajo
 
@@ -254,11 +257,13 @@ fin_for_fil
 	push {r3}
 	bl rand 
 	pop {r3}
-	and r3, #7
-	cmp r3, #2
+;	and r3, #7
+	LDR r4, =parteuno
+	cmp r3, r4
 	movle r3, #-1
 	ble fin_cmp
-	cmp r3, #4
+	LDR r4, =partedos
+	cmp r3, r4
 	movle r3, #0
 	movgt r3, #1
 fin_cmp	
