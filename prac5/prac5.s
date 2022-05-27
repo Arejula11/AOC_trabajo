@@ -52,8 +52,8 @@ carretera EQU '#'
 		IMPORT rand				; para poder invocar SBR rand
 inicio	; se recomienda poner punto de parada (breakpoint) en la primera
 		; instruccion de código para poder ejecutar todo el Startup de golpe
- ;programar RSI_IRQ4 -> RSI_reloj
- 	ldr r0, =VICVectAddr0
+ ;programar RSI_IRQ4 -> RSI 	
+	ldr r0, =VICVectAddr0
 	ldr r1, =RSI_reloj
 	ldr r2, =IRQ4_Index
 
@@ -257,7 +257,8 @@ fin_for_fil
 	push {r3}
 	bl rand 
 	pop {r3}
-;	and r3, #7
+	mov r8, r3
+	and r8, #7
 	LDR r4, =parteuno
 	cmp r3, r4
 	movle r3, #-1
@@ -276,13 +277,17 @@ fin_cmp
 	strb r4, [r0, r3]
 	sub r3, r3, #8
 	strb r4, [r0, r3]
-	
+	cmp r8, #4
+	bne while
+	add r3, r3, r8
+	strb r4, [r0,r3]
+
 
 	
 	b while
 fin_while
 
-	
+;------------------------------------------------
 	
  ;bucle ;mientras fin==0
  ; para cada elemento movil
@@ -369,39 +374,37 @@ RSI_teclado ;Rutina de servicio a la interrupcion IRQ7 (teclado)
 				LDR r1,=RDAT
 				ldrb r0,[r1] 
 				;bic r0,r0,#2_100000 
-				cmp r0, #'k'
+			cmp r0,#0x60
+				subgt r0, r0, #32
+				cmp r0, #'K'
 				bne arriba
 				LDR r0, =diry
 				ldrb r1,[r0]
 				mov r1, #-1
 				strb r1, [r0]
-arriba			cmp r0, #'i'
+arriba			cmp r0, #'I'
 				bne derecha
 				LDR r0, =diry
 				ldrb r1,[r0]
 				mov r1, #1
 				strb r1, [r0]
-derecha			cmp r0, #'l'
+derecha			cmp r0, #'L'
 				bne izq
 				LDR r0, =dirx
 				ldrb r1,[r0]
 				mov r1, #1
 				strb r1, [r0]
-izq				cmp r0, #'j'
+izq				cmp r0, #'J'
 				bne parar2
 				LDR r0, =dirx
 				ldrb r1,[r0]
 				mov r1, #-1
 				strb r1, [r0]
-parar2				cmp r0,#'Q'	
-				beq parar
-				cmp r0,#'q'
-				;bne sigue	
+parar2			cmp r0,#'Q'
 				bne mas
-parar			LDR r1,=fin
+				LDR r1,=fin
 				 mov r0,#1 
 				strb r0,[r1] 
-				;b fintec 
 mas			cmp r0, #'+'
 			bne	menos
 			LDR r0, =max
