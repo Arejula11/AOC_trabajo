@@ -85,53 +85,11 @@ inicio	; se recomienda poner punto de parada (breakpoint) en la primera
 	 
  ;dibujar pantalla inicial
 ini	bl srand
-	LDR r0,=i_pantalla
-	mov r1, #FILAS
-	add r1,r1,#1
-	mov r5, #COLUMNAS
-	sub r1,r1,#1
-	mul r4, r1, r5
-	mov r2, #'H'
-	add r4, r0,r4
-	strb r2, [r4, #12]!
-	mov r9, r4
-	mov r1,#' '
-	LDR r2,=f_pantalla
-
-for2 cmp r0, r2
-	bgt fin_for2
-	strb r1,[r0]
+	sub sp,sp, #4
+	bl pintar_pantalla
+	pop {r9}
+	;pop {r0}
 	
-	add r0, r0, #1
-	b for2
-fin_for2
-	ldr r1,=carretera
-	LDR r0,=i_pantalla
-	add r0, #0x20
-for cmp r0, r2
-	bgt fin_for
-	strb r1,[r0,#8]!
-	strb r1,[r0,#8]!
-	add r0, r0, #16
-	b for
-fin_for	
-	LDR r0,=i_pantalla
-	eor r3,r3,r3
-	mov r6, #'<'
-	mov r8, #'3'
-	LDR r5,=vida
-	ldrb r5,[r5]
-	mov r4, #3
-	mul r4,r5,r4
-for3 cmp r3,r4
-	beq fin_for3
-	strb r6,[r0,r3]
-	add r3,r3,#1
-	strb r8,[r0,r3]
-	add r3,r3,#2
-	
-	b for3
-fin_for3
 while	LDR r0,=fin
 	ldrb r0,[r0]
 	cmp r0, #0
@@ -323,6 +281,62 @@ fin_while
 			mov r2,#7
 			str r1,[r0,r2,LSL #2]
 bfin b bfin
+
+
+pintar_pantalla push{lr,fp}
+	mov fp,sp
+	push{r0,r1,r2,r3,r4,r5,r6,r8,r9}
+	LDR r0,=i_pantalla
+	mov r1,#' '
+	LDR r2,=f_pantalla
+
+for2 cmp r0, r2
+	bgt fin_for2
+	strb r1,[r0]
+	
+	add r0, r0, #1
+	b for2
+fin_for2
+	ldr r1,=carretera
+	LDR r0,=i_pantalla
+	add r0, #0x20
+for cmp r0, r2
+	bgt fin_for
+	strb r1,[r0,#8]!
+	strb r1,[r0,#8]!
+	add r0, r0, #16
+	b for
+fin_for	
+	LDR r0,=i_pantalla
+	eor r3,r3,r3
+	mov r6, #'<'
+	mov r8, #'3'
+	LDR r5,=vida
+	ldrb r5,[r5]
+	mov r4, #3
+	mul r4,r5,r4
+for3 cmp r3,r4
+	beq fin_for3
+	strb r6,[r0,r3]
+	add r3,r3,#1
+	strb r8,[r0,r3]
+	add r3,r3,#2
+	
+	b for3
+fin_for3
+		LDR r0,=i_pantalla
+	mov r1, #FILAS
+	add r1,r1,#1
+	mov r5, #COLUMNAS
+	sub r1,r1,#1
+	mul r4, r1, r5
+	mov r2, #'H'
+	add r4, r0,r4
+	strb r2, [r4, #12]!
+	mov r9, r4
+	str r9,[fp,#8]
+	pop{r0,r1,r2,r3,r4,r5,r6,r8,r9}
+	pop{fp,pc}
 
 RSI_reloj ;Rutina de servicio a la interrupcion IRQ4 (timer 0)
  ;Cada 0,01 s. llega una peticion de interrupcion
